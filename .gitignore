@@ -1,0 +1,2 @@
+echo "*.md5" >> .gitignore
+echo "*.csv" >> .gitignore
