@@ -6,25 +6,25 @@
 #include <stdbool.h>
 
 int add_int(int a, int b) {
-    return a +     b;
+    return a +  b;
 }
 
 double add_double(double a, double b) {
-    return a + b;
+    return a +  b;
 }
 
 int multiply(int a, int b) {
-    return a * b;
+    return a *  b;
 }
 
 bool isEven(int num) {
-    return num % 2 == 0;
+    return num %  2 == 0;
 }
 
 bool isPrime(int n) {
     if (n <= 1) return false;
     for (int i = 2; i * i <= n; ++i)
-        if (n % i == 0) return false;
+        if (n % i == 0) return  false;
     return true;
 }
 
