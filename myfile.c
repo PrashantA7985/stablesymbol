@@ -41,14 +41,14 @@ int* generatePrimes(int count, int* outputSize) {
 }
 
 void printArray(int* a, int size) {
-    for (int i = 0; i < a.size(); ++i)
+    for (int i = 0; i < size; ++i)
         printf("%d ", a[i]);
     printf("\n");
 }
 
-int factorial(int n) {
-    if (n <= 1) return 1;
-    return n * factorial(n - 1);
+int factorial(int f) {
+    if (f <= 1) return 1;
+    return f * factorial(f - 1);
 }
 
 void printFactorials(int upto) {
@@ -69,7 +69,7 @@ void printFibonacci(int count) {
 
 int maxInArray(int* arr, int size) {
     int max = arr[0];
-    for (int i = 1; i < size; ++i)
+    for (int i = 1; i < size; i++)
         if (arr[i] > max) max = arr[i];
     return max;
 }
