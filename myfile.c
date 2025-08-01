@@ -31,7 +31,7 @@ bool isPrime(int n) {
 int* generatePrimes(int count, int* outputSize) {
     int* primes = (int*)malloc(sizeof(int) * count);
     int found = 0;
-    for (int i = 2; found < count; ++i) {
+    for (int i = 2; found < count; i++) {
         if (isPrime(i)) {
             primes[found++] = i;
         }
@@ -40,9 +40,9 @@ int* generatePrimes(int count, int* outputSize) {
     return primes;
 }
 
-void printArray(int* arr, int size) {
-    for (int i = 0; i < size; ++i)
-        printf("%d ", arr[i]);
+void printArray(int* a, int size) {
+    for (int i = 0; i < a.size(); ++i)
+        printf("%d ", a[i]);
     printf("\n");
 }
 
