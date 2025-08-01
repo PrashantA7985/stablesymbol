@@ -56,9 +56,9 @@ void printFactorials(int upto) {
         printf("Factorial of %d: %d\n", i, factorial(i));
 }
 
-int fibonacci(int n) {
-    if (n <= 1) return n;
-    return fibonacci(n - 1) + fibonacci(n - 2);
+int fibonacci(int fb) {
+    if (fb <= 1) return fb;
+    return fibonacci(fb - 1) + fibonacci(fb - 2);
 }
 
 void printFibonacci(int count) {
@@ -164,9 +164,9 @@ int sumOfDigits(int num) {
     return sum;
 }
 
-int power(int base, int exp) {
+int power(int base, int n) {
     int result = 1;
-    for (int i = 0; i < exp; ++i)
+    for (int i = 0; i < n; ++i)
         result *= base;
     return result;
 }
