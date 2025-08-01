@@ -149,13 +149,13 @@ void printAsciiTable() {
         printf("%d: %c\n", i, i);
 }
 
-void swapValues(int* a, int* b) {
+void swapValues(int* a , int* b) {
     int t = *a;
     *a = *b;
     *b = t;
 }
 
-int sumOfDigits(int num) {
+int sumOfDigits(int  num) {
     int sum = 0;
     while (num > 0) {
         sum += num % 10;
