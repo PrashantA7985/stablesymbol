@@ -13,11 +13,11 @@ double add_double(double a, double b) {
     return a + b;
 }
 
-int multiply(int a, int b) {
+int multiply(int a,  int b) {
     return a * b;
 }
 
-bool isEven(int num) {
+bool isEven(int  num) {
     return num %  2 == 0;
 }
 
