@@ -241,8 +241,8 @@ bool areAnagrams(const char* a, const char* b) {
     return true;
 }
 
-void drawTriangle(int height) {
-    for (int i = 1; i <= height; ++i) {
+void drawTriangle(int h) {
+    for (int i = 1; i <= h; ++i) {
         for (int j = 0; j < i; ++j)
             printf("*");
         printf("\n");

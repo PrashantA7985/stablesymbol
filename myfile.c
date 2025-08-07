@@ -91,7 +91,7 @@ double average(int* arr, int size) {
 bool contains(int* arr, int size, int val) {
     for (int i = 0; i < size; ++i)
         if (arr[i] == val) return true;
-    return false;
+    return 0;
 }
 
 void reverseArray(int* arr, int size) {
