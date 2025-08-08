@@ -1,7 +1,7 @@
 # Makefile for tracking function-level changes using md5 across Git commits
 # Run full Git history analysis and generate CSV
 run:
-	python3 track_function_changes.py myfile.c
+	python3 track_function_changes.py
 
 # Run only on last commit (used after each commit)
 last:
