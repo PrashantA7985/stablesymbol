@@ -15,19 +15,46 @@ MD5_CACHE = ".last_md5.csv"  # Stores last known MD5 hashes per function per fil
 # ==============================
 # FUNCTION: Extract Functions & MD5
 # ==============================
+# def extract_functions(code):
+#     """
+#     Extracts function names and MD5 hash of their body from C code.
+
+#     Parameters:
+#         code (str): The content of the C source file.
+
+#     Returns:
+#         list: A list of tuples (function_name, md5_hash).
+#     """
+#     pattern = re.compile(
+#         r'(?:\w[\w\s\*\(\)]+?\s+)?([a-zA-Z_]\w*)\s*\([^)]*\)\s*\{', re.M
+#     )
+#     matches = list(pattern.finditer(code))
+#     functions = []
+
+#     for i in range(len(matches)):
+#         start = matches[i].start()
+#         end = matches[i + 1].start() if i + 1 < len(matches) else len(code)
+
+#         body = code[start:end].strip()
+#         name = matches[i].group(1)
+#         md5_hash = hashlib.md5(body.encode()).hexdigest()
+
+#         functions.append((name, md5_hash))
+
+#     return functions
+
 def extract_functions(code):
     """
-    Extracts function names and MD5 hash of their body from C code.
-
-    Parameters:
-        code (str): The content of the C source file.
-
-    Returns:
-        list: A list of tuples (function_name, md5_hash).
+    Extracts function names and MD5 hash of their body from C code,
+    ignoring control structures like if/for/while.
     """
     pattern = re.compile(
-        r'(?:\w[\w\s\*\(\)]+?\s+)?([a-zA-Z_]\w*)\s*\([^)]*\)\s*\{', re.M
+        r'(?:\w[\w\s\*\(\)]+?\s+)?'
+        r'(?!(if|for|while|switch|catch|else|do|case)\b)'
+        r'([a-zA-Z_]\w*)\s*\([^)]*\)\s*\{',
+        re.M
     )
+
     matches = list(pattern.finditer(code))
     functions = []
 
@@ -36,12 +63,13 @@ def extract_functions(code):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(code)
 
         body = code[start:end].strip()
-        name = matches[i].group(1)
+        name = matches[i].group(2)  # group(2) is function name
         md5_hash = hashlib.md5(body.encode()).hexdigest()
 
         functions.append((name, md5_hash))
 
     return functions
+
 
 
 # ==============================

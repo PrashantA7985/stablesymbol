@@ -15,20 +15,47 @@ MD5_CACHE = ".last_md5.csv"  # Stores latest MD5 hash of each function per file
 
 # ==============================
 # FUNCTION: Extract functions from C code
-# ==============================
+# # ==============================
+# def extract_functions(code):
+#     """
+#     Extracts function names and their full body from C source code.
+
+#     Parameters:
+#         code (str): Full text content of the C file.
+
+#     Returns:
+#         list: A list of tuples (function_name, function_body).
+#     """
+#     # Matches: return type (optional), function name, parameters, opening brace
+#     pattern = re.compile(
+#         r'(?:\w[\w\s\*\(\)]+?\s+)?([a-zA-Z_]\w*)\s*\([^)]*\)\s*\{', re.M
+#     )
+
+#     matches = list(pattern.finditer(code))
+#     functions = []
+
+#     for i in range(len(matches)):
+#         start = matches[i].start()
+#         end = matches[i + 1].start() if i + 1 < len(matches) else len(code)
+
+#         func_code = code[start:end].strip()
+#         func_name = matches[i].group(1)
+
+#         functions.append((func_name, func_code))
+
+#     return functions
+
+
 def extract_functions(code):
     """
-    Extracts function names and their full body from C source code.
-
-    Parameters:
-        code (str): Full text content of the C file.
-
-    Returns:
-        list: A list of tuples (function_name, function_body).
+    Extracts function names and MD5 hash of their body from C code,
+    ignoring control structures like if/for/while.
     """
-    # Matches: return type (optional), function name, parameters, opening brace
     pattern = re.compile(
-        r'(?:\w[\w\s\*\(\)]+?\s+)?([a-zA-Z_]\w*)\s*\([^)]*\)\s*\{', re.M
+        r'(?:\w[\w\s\*\(\)]+?\s+)?'
+        r'(?!(if|for|while|switch|catch|else|do|case)\b)'
+        r'([a-zA-Z_]\w*)\s*\([^)]*\)\s*\{',
+        re.M
     )
 
     matches = list(pattern.finditer(code))
@@ -38,10 +65,11 @@ def extract_functions(code):
         start = matches[i].start()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(code)
 
-        func_code = code[start:end].strip()
-        func_name = matches[i].group(1)
+        body = code[start:end].strip()
+        name = matches[i].group(2)  # group(2) is function name
+        md5_hash = hashlib.md5(body.encode()).hexdigest()
 
-        functions.append((func_name, func_code))
+        functions.append((name, md5_hash))
 
     return functions
 
