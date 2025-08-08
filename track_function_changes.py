@@ -46,32 +46,57 @@ MD5_CACHE = ".last_md5.csv"  # Stores latest MD5 hash of each function per file
 #     return functions
 
 
-def extract_functions(code):
+def extract_functions(code, file_path=None):
     """
-    Extracts function names and MD5 hash of their body from C code,
-    ignoring control structures like if/for/while.
+    Extracts function names and MD5 hash of their body from a C file using ctags.
+    `file_path` must be the actual file on disk (ctags works on files, not strings).
+    Returns: list of (function_name, md5_hash)
     """
-    pattern = re.compile(
-        r'(?:\w[\w\s\*\(\)]+?\s+)?'
-        r'(?!(if|for|while|switch|catch|else|do|case)\b)'
-        r'([a-zA-Z_]\w*)\s*\([^)]*\)\s*\{',
-        re.M
+    if not file_path:
+        return []
+
+    # Run ctags to get function name + line number
+    result = subprocess.run(
+        ["ctags", "-x", "--c-kinds=f", file_path],
+        capture_output=True, text=True
     )
 
-    matches = list(pattern.finditer(code))
     functions = []
+    if result.returncode != 0:
+        return functions
 
-    for i in range(len(matches)):
-        start = matches[i].start()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(code)
+    lines = result.stdout.strip().split("\n")
+    if not lines or lines == ['']:
+        return functions
 
-        body = code[start:end].strip()
-        name = matches[i].group(2)  # group(2) is function name
+    # Load file content once
+    with open(file_path, "r", errors="ignore") as f:
+        code_lines = f.readlines()
+
+    # Parse ctags output and extract body
+    parsed_funcs = []
+    for line in lines:
+        parts = line.split()
+        if len(parts) >= 3:
+            name = parts[0]
+            try:
+                start_line = int(parts[2])
+                parsed_funcs.append((name, start_line))
+            except ValueError:
+                continue
+
+    # Sort by start line so we can find body ranges
+    parsed_funcs.sort(key=lambda x: x[1])
+
+    for i, (name, start_line) in enumerate(parsed_funcs):
+        start_idx = start_line - 1
+        end_idx = parsed_funcs[i + 1][1] - 1 if i + 1 < len(parsed_funcs) else len(code_lines)
+        body = "".join(code_lines[start_idx:end_idx]).strip()
         md5_hash = hashlib.md5(body.encode()).hexdigest()
-
         functions.append((name, md5_hash))
 
     return functions
+
 
 
 # ==============================
@@ -168,7 +193,8 @@ def main():
             if not code:
                 continue
 
-            functions = extract_functions(code)
+            functions = extract_functions(code, file_path=file)
+
             current_md5s = {name: md5sum(body) for name, body in functions}
 
             for name, md5 in current_md5s.items():

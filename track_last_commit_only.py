@@ -2,6 +2,7 @@ import hashlib
 import re
 import csv
 import os
+import subprocess
 from collections import defaultdict
 
 # ==============================
@@ -13,37 +14,55 @@ MD5_CACHE = ".last_md5.csv"  # Stores last known MD5 hashes per function per fil
 
 
 # ==============================
-# FUNCTION: Extract Functions & MD5
+# FUNCTION: Extract Functions & MD5 using ctags
 # ==============================
-def extract_functions(code):
+def extract_functions(code, file_path=None):
     """
-    Extracts function names and MD5 hash of their body from C code.
-
-    Parameters:
-        code (str): The content of the C source file.
-
-    Returns:
-        list: A list of tuples (function_name, md5_hash).
+    Extracts function names and MD5 hash of their body from a C file using ctags.
+    `file_path` must be the actual file on disk (ctags works on files, not strings).
+    Returns: list of (function_name, md5_hash)
     """
-    # Regex to match C function definitions
-    pattern = re.compile(
-        r'(?:\w[\w\s\*\(\)]+?\s+)?([a-zA-Z_]\w*)\s*\([^)]*\)\s*\{', re.M
+    if not file_path:
+        return []
+
+    # Run ctags to get function name + line number
+    result = subprocess.run(
+        ["ctags", "-x", "--c-kinds=f", file_path],
+        capture_output=True, text=True
     )
 
-    matches = list(pattern.finditer(code))
     functions = []
+    if result.returncode != 0:
+        return functions
 
-    for i in range(len(matches)):
-        start = matches[i].start()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(code)
+    lines = result.stdout.strip().split("\n")
+    if not lines or lines == ['']:
+        return functions
 
-        # Extract function body
-        body = code[start:end].strip()
-        name = matches[i].group(1)
+    # Load file content once
+    with open(file_path, "r", errors="ignore") as f:
+        code_lines = f.readlines()
 
-        # Create MD5 hash of the function body
+    # Parse ctags output and extract body
+    parsed_funcs = []
+    for line in lines:
+        parts = line.split()
+        if len(parts) >= 3:
+            name = parts[0]
+            try:
+                start_line = int(parts[2])
+                parsed_funcs.append((name, start_line))
+            except ValueError:
+                continue
+
+    # Sort by start line so we can find body ranges
+    parsed_funcs.sort(key=lambda x: x[1])
+
+    for i, (name, start_line) in enumerate(parsed_funcs):
+        start_idx = start_line - 1
+        end_idx = parsed_funcs[i + 1][1] - 1 if i + 1 < len(parsed_funcs) else len(code_lines)
+        body = "".join(code_lines[start_idx:end_idx]).strip()
         md5_hash = hashlib.md5(body.encode()).hexdigest()
-
         functions.append((name, md5_hash))
 
     return functions
@@ -53,12 +72,6 @@ def extract_functions(code):
 # FUNCTION: Find all .c files recursively
 # ==============================
 def find_c_files(folder):
-    """
-    Recursively finds all .c files in the given folder.
-
-    Returns:
-        list: A list of relative file paths for all found .c files.
-    """
     c_files = []
     for root, _, files in os.walk(folder):
         for file in files:
@@ -73,12 +86,6 @@ def find_c_files(folder):
 # FUNCTION: Load last MD5 snapshot
 # ==============================
 def load_previous_md5():
-    """
-    Loads the last known MD5 hash of each function from cache.
-
-    Returns:
-        dict: {(file, function): md5_hash}
-    """
     if not os.path.exists(MD5_CACHE):
         return {}
     with open(MD5_CACHE) as f:
@@ -90,12 +97,6 @@ def load_previous_md5():
 # FUNCTION: Save current MD5 snapshot
 # ==============================
 def save_current_md5(md5_map):
-    """
-    Saves the current MD5 hashes to cache.
-
-    Parameters:
-        md5_map (dict): {(file, function): md5_hash}
-    """
     with open(MD5_CACHE, 'w', newline='') as f:
         writer = csv.writer(f)
         for (file, func), md5 in md5_map.items():
@@ -106,12 +107,6 @@ def save_current_md5(md5_map):
 # FUNCTION: Load modification counts
 # ==============================
 def load_counts():
-    """
-    Loads the function modification counts from CSV.
-
-    Returns:
-        dict: {(file, function): count}
-    """
     counts = defaultdict(int)
     if os.path.exists(CSV_PATH):
         with open(CSV_PATH) as f:
@@ -127,12 +122,6 @@ def load_counts():
 # FUNCTION: Save modification counts
 # ==============================
 def save_counts(counts):
-    """
-    Saves the modification counts to CSV.
-
-    Parameters:
-        counts (dict): {(file, function): count}
-    """
     with open(CSV_PATH, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(["File", "Function", "ModificationCount"])
@@ -144,45 +133,37 @@ def save_counts(counts):
 # MAIN LOGIC
 # ==============================
 def main():
-    # 1️⃣ Find all .c files in the folder (including subfolders)
     all_c_files = find_c_files(FOLDER_TO_TRACK)
     print(f"🔍 Found {len(all_c_files)} .c files under '{FOLDER_TO_TRACK}'")
 
-    # 2️⃣ Load previous MD5 hashes & counts
     new_md5s = {}
     old_md5s = load_previous_md5()
     counts = load_counts()
 
-    # 3️⃣ Loop through each C file
     for file_path in all_c_files:
+        abs_path = os.path.join(FOLDER_TO_TRACK, file_path)
         try:
-            with open(os.path.join(FOLDER_TO_TRACK, file_path), 'r', errors='ignore') as f:
+            with open(abs_path, 'r', errors='ignore') as f:
                 code = f.read()
         except Exception as e:
             print(f"⚠️ Error reading {file_path}: {e}")
             continue
 
-        # Extract functions and their MD5 hashes
-        for func, md5 in extract_functions(code):
-            key = (file_path, func)  # File path + Function name = Unique key
+        for func, md5 in extract_functions(code, file_path=abs_path):
+            key = (file_path, func)
             old_md5 = old_md5s.get(key)
             new_md5s[key] = md5
 
-            # If MD5 has changed, increment modification count
             if old_md5 and old_md5 != md5:
                 counts[key] += 1
             elif key not in counts:
-                counts[key] = 0  # First time seeing this function
+                counts[key] = 0
 
-    # 4️⃣ Save updated MD5 hashes & counts
     save_current_md5(new_md5s)
     save_counts(counts)
 
     print(f"✅ Modification counts updated. Saved to '{CSV_PATH}'.")
 
 
-# ==============================
-# RUN THE SCRIPT
-# ==============================
 if __name__ == "__main__":
     main()
