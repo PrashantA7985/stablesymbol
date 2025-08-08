@@ -192,7 +192,7 @@ void countDown(int n) {
     while (n >= 0) {
         printf("%d ", n--);
     }
-    printf("\n");
+  
 }
 
 void fizzBuzz(int n) {
